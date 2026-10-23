@@ -1,0 +1,34 @@
+# CTF repo ignores
+
+# Large / binary challenge artifacts (keep these local, not in git)
+*.pcap
+*.pcapng
+*.iso
+*.img
+*.dmp
+*.core
+core.*
+*.raw
+
+# Compiled / intermediate
+*.o
+*.obj
+*.pyc
+__pycache__/
+*.class
+
+# Python envs
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Secrets / scratch you don't want pushed
+secrets.txt
+*.key
+*.pem
+scratch/
+.DS_Store
+
+# Tool output noise
+*.log
