@@ -1,0 +1,44 @@
+=== WifiScan start, initial auth=0 ===
+auth changed -> 0
+auth changed -> 3
+SCAN OK: 39 BSS on en0
+EPRIGuest bssid=be:b4:c9:f6:10:30 ch=6   2.4GHz rssi=-50 
+Gigawatt bssid=b8:b4:c9:f6:10:30 ch=6   2.4GHz rssi=-50 
+Robert Weiss’s iPhone bssid=5a:36:da:dc:dc:a9 ch=149 5GHz rssi=-51 
+Gigawatt bssid=ba:b4:d9:f6:10:30 ch=161 5GHz rssi=-55 
+EPRIGuest bssid=be:b4:d9:f6:10:30 ch=161 5GHz rssi=-55 
+iPhone (147) bssid=16:79:9f:9c:1c:68 ch=149 5GHz rssi=-57 
+Nearby bssid=16:fc:98:e0:06:fe ch=149 5GHz rssi=-57 
+EPRIGuest bssid=be:b4:d9:f6:11:40 ch=36  5GHz rssi=-59 
+Gigawatt bssid=ba:b4:d9:f6:11:40 ch=36  5GHz rssi=-59 
+Galaxy S9+ bssid=d6:47:9c:bb:19:16 ch=149 5GHz rssi=-60 
+EPRIGuest bssid=ca:6e:2a:fb:e4:40 ch=11  2.4GHz rssi=-68 
+Gigawatt bssid=cc:6e:2a:fb:e4:40 ch=11  2.4GHz rssi=-68 
+DC205_Demo_LAN bssid=14:ea:a1:77:25:6b ch=7   2.4GHz rssi=-71 
+Secret Plutonium Stash bssid=b8:fb:b3:98:91:de ch=9   2.4GHz rssi=-74   <<< MATCH
+Gigawatt bssid=b8:b4:c9:f6:0e:b0 ch=1   2.4GHz rssi=-75 
+EPRIGuest bssid=be:b4:c9:f6:0e:b0 ch=1   2.4GHz rssi=-75 
+EPRIGuest bssid=be:b4:c9:f6:0b:20 ch=6   2.4GHz rssi=-76 
+EPRIGuest bssid=ca:6e:2a:fb:e4:c0 ch=6   2.4GHz rssi=-76 
+Gigawatt bssid=cc:6e:2a:fb:e4:c0 ch=6   2.4GHz rssi=-76 
+Gigawatt bssid=ce:6e:3a:fb:e4:40 ch=100 5GHz rssi=-77 
+EPRIGuest bssid=ca:6e:3a:fb:e4:40 ch=100 5GHz rssi=-77 
+PattyP bssid=f2:a6:f7:ff:87:8b ch=149 5GHz rssi=-77 
+RG3100-8276 guest bssid=50:fb:ff:02:ed:e0 ch=11  2.4GHz rssi=-78 
+Brians iPhone 13 pro bssid=9a:41:09:bf:e0:16 ch=149 5GHz rssi=-79 
+CYD-Deck-E9BFB4 bssid=b4:bf:e9:c8:a6:59 ch=1   2.4GHz rssi=-80 
+Gigawatt bssid=ba:b4:d9:f6:0b:20 ch=48  5GHz rssi=-81 
+RG3100-8276 bssid=50:fb:ff:02:8a:58 ch=149 5GHz rssi=-81 
+EPRIGuest bssid=be:b4:d9:f6:0b:20 ch=48  5GHz rssi=-81 
+Gigawatt bssid=ba:b4:d9:f6:0b:40 ch=56  5GHz rssi=-82 
+EPRIGuest bssid=be:b4:d9:f6:0b:40 ch=56  5GHz rssi=-82 
+OT Test Bed bssid=94:83:c4:98:58:71 ch=36  5GHz rssi=-84 
+_ bssid=2a:6e:23:c1:1e:83 ch=11  2.4GHz rssi=-84 
+Gigawatt bssid=ba:b4:d9:f6:0e:b0 ch=64  5GHz rssi=-87 
+EPRIGuest bssid=be:b4:d9:f6:0e:b0 ch=64  5GHz rssi=-88 
+EPRIGuest bssid=ca:6e:3a:fb:e4:c0 ch=144 5GHz rssi=-88 
+EPRIGuest bssid=be:b4:d9:f6:0e:a0 ch=165 5GHz rssi=-89 
+Gigawatt bssid=ce:6e:3a:fb:e4:c0 ch=144 5GHz rssi=-89 
+Multimeter bssid=b2:b4:d9:f6:0e:a0 ch=165 5GHz rssi=-90 
+Gigawatt bssid=ba:b4:d9:f6:0e:a0 ch=165 5GHz rssi=-90 
+DONE
