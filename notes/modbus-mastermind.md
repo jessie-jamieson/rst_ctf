@@ -1,98 +1,152 @@
-# Modbus Mastermind (30 pts)
+# Modbus Mastermind — Writeup
 
-## Prompt
-> This PLC is online and chatty, but it is holding out on you. Part of what you
-> want reads straight off the holding registers, but seems like you need to arm
-> the device a certain way.
+- **Category:** ICS / PLC (Modbus/TCP)
+- **Points:** 30
+- **Flag:** `rstcon{pymodbus_or_it_didnt_happen}`
+- **Description:** *This PLC is online and chatty, but it is holding out on you.
+  Part of what you want reads straight off the holding registers, but seems like
+  you need to arm the device a certain way.*
+- **Targets:** Mirror 1 `18.215.143.250:1500` · Mirror 2 `18.145.136.91:1500`
 
-- Mirror 1: `18.215.143.250:1500`
-- Mirror 2: `18.145.136.91:1500`
-- Flag format: `rstcon{...}`
+## TL;DR
 
-## Service characterization (Modbus/TCP, port 1500)
-Raw Modbus/TCP. Probed every function code:
-
-| FC | Function | Result |
-|----|----------|--------|
-| 0x03 | Read Holding Registers | **supported** (addr 0–65535 all readable) |
-| 0x06 | Write Single Register | **supported** |
-| 0x10 | Write Multiple Registers | **supported** |
-| 0x01/0x02/0x04 | Read Coils / Discrete / Input | ILLEGAL_FUNCTION (exc 01) |
-| 0x05 | Write Single Coil | ILLEGAL_FUNCTION |
-| 0x07,0x08,0x0B,0x0C,0x11,0x14,0x16,0x17,0x18,0x2B | diagnostics / file / device-id / etc. | all ILLEGAL_FUNCTION |
-
-Unit/slave ID is ignored (0–255 all identical).
-
-## Key finding: it is a bare, shared, writable register store with NO logic
-Verified empirically:
-- Writes **persist globally** across connections (unique nonce test) — single
-  shared backend per mirror (25/25 connections identical), no load balancing.
-- **No on-read logic**: overwrote reg1337 (`0x600D`="GOOD") with `0xBEEF`; it
-  stayed `0xBEEF`, never recomputed. No register's read value depends on reg0.
-- **No on-write logic**: FC06/FC16 writes just store; no feedback register
-  reacts to a "guess" (tested Mastermind-style). No flag ever gets injected.
-- **No read-only/protected region** (write+readback across sampled 0–65535).
-- **No TTL** (writes don't expire) and **no server-driven mutation** on reads.
-- Default fill is a uniform `7, 1965, 42` 3-cycle by address, everywhere.
-
-## State is competitor graffiti, not the challenge
-Because reads/writes are unrestricted and shared, all ~48 prior solvers' writes
-accumulate. Observed live: `ARMED` (`41 52 4D 45 44`) scattered at reg0-4 and
-reg10-14, `MASTERMIND`, `GOOD`/`0x600D`@1337, `0xCAFE`/`0xDEAD`/`0x9876`/`0xBAD`
-littered around. reg0 flips under me (concurrent players). **No `rstcon{` /
-`flag{` anywhere in 0–65535 on either mirror, in any byte encoding.**
-
-## Author landmarks survive (cross-mirror agreement)
-Author-placed data is identical on both mirrors (same init); graffiti is
-independent per mirror. Taking the intersection (same address, same non-noise
-value on BOTH m1 and m2) isolates author content:
-- **reg1000-1004 = `MASTERMIND`** (`0x4D41 53 54 45 52 4D 49 4E 44`) — the device label.
-- **reg1337 = `0x600D` ("GOOD")** — leet status landmark.
-
-So the author *did* stage data in holding registers (register-based mechanic
-confirmed). The flag bytes would sit adjacent to these landmarks — but that
-region is now overwritten. On m2, reg1005-1019 (right after `MASTERMIND`) is
-all zeros; on m1 the reg1337+ region is competitor graffiti (`RSTCD`, `2026`,
-`MASTERMIND` fragments). No intact `rstcon{...}` survives on either mirror.
-
-Latest moment-in-time retest: additional angles all negative —
-- All 256 unit/slave IDs return identical data (no hidden bank).
-- Spelling `ARMED` in reg0-4 unlocks nothing across reg0-16384 (no on-read logic).
-- MBAP Protocol-ID / Transaction-ID are echoed and ignored (standard Modbus).
-- No other active writer on m2 during a 12 s window (board is shared but quiet).
-
-## Conclusion / blocker
-The live shared instance is vandalized past the point of reading the flag. The
-intended path ("read part of the flag off holding registers; arm the device to
-reveal the rest") only works against a **clean instance** — the flag bytes were
-author-placed in holding registers and have been overwritten. No automatic
-reset observed in a 5-min monitor; m2 only accumulated more graffiti (34 → 4031
-anomalies), arguing against frequent auto-resets.
-
-**Need:** a fresh/reset instance (per-team spin-up or server reset), then
-`read holding registers → arm (write the documented register) → read`.
-
-## Tooling (in `solves/modbus-mastermind/`)
-- `modbus.py` — dependency-free raw Modbus/TCP client (read/write holding).
-- `recon.py`, `probe.py` — register map + function-code probing.
-- `arm_brute.py` — brute candidate (arm-register, arm-value) pairs.
-- `monitor.py`, `catch_reset.py` — poll mirrors for a reset/clean flag state.
-
-## SOLVED (after organizer restart, 2026-10-24)
-Once the organizers reset the instance, the staged flag was readable on BOTH
-mirrors. The flag is stored one ASCII char per register in the **low byte** of
-each holding register, in two pieces:
-- **reg100** low bytes = `rstcon{pymodbus_or` (reads straight off the registers)
-- **reg200** low bytes = `_it_didnt_happen}` (the "arm the device" half)
-
-Join the low-byte stream (drop the `0x00` padding between the two runs):
+A raw **Modbus/TCP** PLC exposes its holding registers. The flag is stored one
+ASCII character per register, in the **low byte** of each 16-bit register. It
+comes in two halves — the first reads straight off the registers, the second
+appears after you "arm" the device. Read the whole register map, take the low
+byte of each register, strip the `0x00` padding, and the flag falls out:
 
 ```
 rstcon{pymodbus_or_it_didnt_happen}
 ```
 
-`solve.py` auto-extracts it (LO encoding). The earlier blocker was correct: the
-mechanic was register-based all along; it just needed a clean board.
+The twist for us was operational, not technical: for most of the event the
+public instance was a **shared, world-writable register store** that competitors
+had overwritten into noise. The actual break only worked against a **clean
+instance** — which is exactly what the challenge intended, and what an organizer
+restart finally gave us.
+
+## Recon — what is this thing?
+
+Port `1500` speaks **Modbus/TCP**. There's no banner; you just send a well-formed
+request and see what comes back. A Modbus/TCP frame is a 7-byte **MBAP header**
+(Transaction ID, Protocol ID, Length, Unit ID) followed by the **PDU** (function
+code + data). No library needed — it's a handful of `struct.pack` calls over a
+TCP socket (`solves/modbus-mastermind/modbus.py`).
+
+Probing every function code mapped the device's surface:
+
+| FC | Function | Result |
+|----|----------|--------|
+| `0x03` | Read Holding Registers | **supported** (addresses 0–65535 all readable) |
+| `0x06` | Write Single Register | **supported** |
+| `0x10` | Write Multiple Registers | **supported** |
+| `0x01/0x02/0x04` | Read Coils / Discrete / Input | `ILLEGAL_FUNCTION` (exc 0x01) |
+| everything else | diagnostics / file / device-id | `ILLEGAL_FUNCTION` |
+
+So the entire game lives in the **holding registers**, read with FC03. The
+prompt confirms it: *"part of what you want reads straight off the holding
+registers."*
+
+## The detour — a griefed shared board
+
+The first (long) pass at this looked like a dead end, and it's worth recording
+why, because it's a realistic ICS-security lesson.
+
+Reading the register map didn't show a flag — it showed **graffiti**: `ARMED`,
+`MASTERMIND`, `GOOD`/`0x600D`, and leet junk (`0xCAFE`, `0xDEAD`, `0xBEEF`, …)
+scattered around, with values flipping mid-scan. A few empirical tests explained
+it:
+
+- **Writes persist globally across connections** (I wrote a unique nonce from one
+  socket and read it back from another) — a single shared backend per mirror.
+- **There's no logic behind the registers.** Overwriting `reg1337` (`0x600D`)
+  with `0xBEEF` made it *stay* `0xBEEF`; nothing recomputed it. FC06/FC16 writes
+  just store. It's a bare key/value store, not a simulated PLC.
+- Because read **and write** are open to everyone and nothing resets, ~48 prior
+  solvers' writes had accumulated on top of each other and buried the flag.
+
+One genuinely useful positive finding came out of this: **author-placed data is
+identical on both mirrors** (same seed/init), while graffiti differs per mirror.
+Intersecting the two maps isolated real landmarks — `reg1000 = "MASTERMIND"`,
+`reg1337 = 0x600D` — proving the mechanic was register-based and that the flag
+*had* been staged in registers, just clobbered since. Conclusion at the time:
+**not solvable until a clean instance exists.** (The full lab log of this phase —
+function-code probing, the cross-mirror intersection, the reset watch — is in
+`solves/modbus-mastermind/process-notes.md`.)
+
+That turned out to be correct. An organizer restart wiped the board, and the
+staged flag was immediately readable on **both** mirrors.
+
+## The break — low-byte register encoding
+
+On the clean instance, dumping all 65,536 holding registers and scanning the
+bytes for `rstcon{` under every obvious encoding (big-endian, little-endian,
+low-byte stream, high-byte stream) hit on the **low-byte stream**: the flag is
+stored **one ASCII char per register, in the low byte** (the high byte is zero).
+
+It arrives in two runs, with zero padding between them:
+
+| Registers | Low bytes spell | Role |
+|-----------|-----------------|------|
+| `reg100…` | `rstcon{pymodbus_or` | *"reads straight off the holding registers"* |
+| `reg200…` | `_it_didnt_happen}`  | *"you need to arm the device"* |
+
+Both runs were present on the reset instance (identical on m1 and m2), so
+reassembling the low-byte stream and dropping the `0x00` gaps gives the complete,
+contiguous flag.
+
+## Exploit
+
+Using the dependency-free client in `solves/modbus-mastermind/modbus.py`:
+
+```python
+#!/usr/bin/env python3
+from modbus import ModbusTCP, HOSTS   # raw Modbus/TCP over a plain socket
+
+host, port = HOSTS["m1"]              # 18.215.143.250:1500
+with ModbusTCP(host, port, timeout=10) as m:
+    regs = []
+    base = 0
+    while base < 65536:               # FC03 caps at 125 regs/request
+        cnt = min(125, 65536 - base)
+        regs.extend(m.read_holding(base, cnt))
+        base += cnt
+
+# Flag is the LOW byte of each register; strip the 0x00 padding
+lo   = bytes(r & 0xFF for r in regs)
+frag = lo[lo.find(b"rstcon{"):]
+frag = frag[:frag.find(b"}") + 1]
+print(bytes(b for b in frag if b != 0).decode())
+```
+
+Output (identical on both mirrors):
+
+```
+rstcon{pymodbus_or_it_didnt_happen}
+```
+
+`solves/modbus-mastermind/solve.py` wraps this up — it reads the full map, prints
+the landmarks, tries all four byte encodings, and arms the device (writes to
+`reg0`) if the second half isn't present yet. Run it with `python3 solve.py m1`.
 
 ## Flag
-`rstcon{pymodbus_or_it_didnt_happen}`
+
+```
+rstcon{pymodbus_or_it_didnt_happen}
+```
+
+## Takeaways
+
+- **Modbus has no auth and no encryption.** An internet-reachable PLC on `:1500`
+  will answer FC03 reads to anyone, and here FC06/FC16 writes too. That's the
+  whole premise — and it mirrors real exposed ICS gear.
+- **Watch the byte lanes.** Modbus registers are 16-bit; packing ASCII into only
+  the low byte of each register is a common ICS idiom. If one encoding looks like
+  junk, try BE/LE/low-byte/high-byte before concluding there's nothing there.
+- **A shared, writable CTF service is fragile.** With open writes and no reset or
+  per-team isolation, competitors overwrite each other (and the staged flag).
+  The clean fix the organizers want here is read-only flag registers or a
+  per-connection instance — exactly the same control you'd want on a real PLC.
+- The flag is a wink at that: **`pymodbus_or_it_didnt_happen`** — prove it with a
+  real Modbus client, not by hand.

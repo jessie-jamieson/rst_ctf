@@ -4,7 +4,10 @@
 - **Target:** `https://18.215.143.250:5000` (mirror 2: `https://18.145.136.91:5000`)
 - **App:** MEDVAULT `v2.1.0` — "Rx Inventory" medication search
 - **Vuln:** UNION-based SQL injection in the search parameter (SQLite backend)
-- **Flag:** `FLAG{__REPLACE_ME__}`  _(recovered from the `users` table)_
+- **Status:** ⚠️ **Unsolved / WIP** — the injection and full-DB dump path are confirmed and
+  working, but the final flag string was never captured/recorded before the event closed.
+- **Points:** not recorded
+- **Flag:** _not recovered_ — it sits in the `users` table; the dump query is below.
 
 ---
 
@@ -95,7 +98,10 @@ Dump the `users` table (where the flag was planted):
 q = x' UNION SELECT id, username||' | '||role||' | '||full_name, password_hash, email, id FROM users-- -
 ```
 
-The flag was in a `users` row. Patients and insurance_claims dump the same way
+The flag lives in a `users` row (in the `password_hash`/credential column this query
+surfaces). This path was verified to return rows, but the specific flag value wasn't
+recorded in these notes — re-run the dump against a live instance to read it off.
+Patients and insurance_claims dump the same way
 (see `solves/medvault/exploit.js`) and spill full PHI — name, DOB, address,
 allergies, insurance member IDs.
 
