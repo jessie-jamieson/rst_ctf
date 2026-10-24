@@ -1,6 +1,7 @@
 # S7-1200 Dosing Skid — Writeup
 
 - **Category:** ICS / OT (physical hardware, OPC-UA)
+- **Points:** not recorded (on-site live-hardware challenge)
 - **Flag:** `rstcon{ALUM_<redacted>_4840}`  *(middle word is the on-rig reveal after a successful pH change; intentionally omitted here)*
 - **Scenario:** A plumber-hacker "!(Mario)" threatens to "fix the pH problem
   permanently" by dosing acid into a treatment stage via a dosing-skid PLC left

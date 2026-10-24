@@ -64,10 +64,20 @@ confirming the deserializer path is live:
 
 ## The vulnerability (React2Shell)
 
-React's Flight protocol serializes Server-Action arguments as numbered "chunks"
-that can reference each other, e.g. `"$1:fruitName"` means *key `fruitName` of
-chunk 1*. Before the fix, reference resolution did **not** check that the key was
-an own-property of the object. So a chain can climb the prototype:
+Background on React Flight: it's the wire format React uses to (de)serialize data
+between server and client. The server receives each Server-Action argument as a
+numbered **chunk**; each chunk is a little state machine (`Chunk` object) that moves
+from unparsed to `"resolved_model"` (JSON parsed, references not yet followed) to
+fully resolved. Chunks can point at each other with string references: `"$1:fruitName"`
+means *take key `fruitName` of chunk 1*, and the special form `"$@0"` yields the raw
+`Chunk` **object** for chunk 0 rather than its resolved value.
+
+The bug: before the patch, reference resolution did **not** check that the key being
+followed was an *own* property — so a reference can walk up the prototype chain. In
+JavaScript, `anyObject.__proto__.constructor` is `Object`, and `Object.constructor`
+is `Function` (the function that builds functions), so the reference
+`"$1:__proto__:constructor:constructor"` resolves straight to the `Function`
+constructor — the primitive you need for code execution:
 
 ```python
 # resolves to [Function: Function]

@@ -103,6 +103,13 @@ index 128 = the queue handle**.
 
 ## Turning it into a flash read (fake queue)
 
+Background: in FreeRTOS a queue is just a `Queue_t` struct in RAM, and a "queue handle"
+is a pointer to it. `xQueueReceive(handle, dst, ...)` normally `memcpy`s one item's worth
+of bytes **from inside that struct's ring buffer** (`pcReadFrom`) into `dst`. So if we can
+make the handle point at a `Queue_t` *we* control, we choose where the copy reads from —
+including flash. We only need to forge the handful of fields the receive path actually
+touches; everything else can stay zero.
+
 Reversing `xQueueReceive` / `prvCopyDataFromQueue` gives the `Queue_t` layout for this
 build:
 
